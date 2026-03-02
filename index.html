@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PriceConvert - Sistema de Precificação com Conversão de Moeda</title>
+  <meta name="description" content="Sistema de precificação de serviços com conversão de moeda em tempo real">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <h1 class="header__title">PriceConvert</h1>
+      <p class="header__subtitle">Sistema de Precificação com Conversão de Moeda</p>
+    </header>
+
+    <main>
+      <div class="form-card">
+        <div class="form-group">
+          <label for="service-select" class="form-label">1. Selecione o Tipo de Serviço</label>
+          <select id="service-select" class="form-select" required>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <div class="value-range" id="value-range"></div>
+        </div>
+
+        <div class="form-group">
+          <label for="brl-value" class="form-label">2. Informe o Valor em Reais (R$)</label>
+          <div class="input-currency">
+            <span class="input-currency__symbol">R$</span>
+            <input 
+              type="text" 
+              id="brl-value" 
+              class="form-input" 
+              placeholder="0,00"
+              inputmode="decimal"
+            >
+          </div>
+          <div id="alert" class="alert"></div>
+        </div>
+
+        <div class="form-group">
+          <label for="currency-select" class="form-label">3. Selecione a Moeda de Conversão</label>
+          <select id="currency-select" class="form-select" required>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <button type="button" id="btn-calculate" class="btn btn--primary">
+            Calcular Conversão
+          </button>
+        </div>
+
+        <div id="loading" class="loading">
+          <div class="spinner"></div>
+          <p>Buscando taxa de câmbio...</p>
+        </div>
+      </div>
+
+      <div id="result" class="result-card"></div>
+    </main>
+
+    <footer class="footer">
+      <p>Taxas de câmbio fornecidas por AwesomeAPI e ExchangeRate-API</p>
+    </footer>
+  </div>
+
+  <script src="js/config/services.js"></script>
+  <script src="js/utils/formatter.js"></script>
+  <script src="js/services/exchangeService.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
