@@ -393,3 +393,169 @@ body {
     flex-direction: column;
   }
 }
+
+.services-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-sm);
+}
+
+@media (max-width: 480px) {
+  .services-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.service-checkbox {
+  position: relative;
+}
+
+.service-checkbox input {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.service-checkbox label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: #F8FAFC;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.service-checkbox label:hover {
+  border-color: var(--color-secondary);
+  background: #EFF6FF;
+}
+
+.service-checkbox input:checked + label {
+  border-color: var(--color-secondary);
+  background: #EFF6FF;
+  color: var(--color-secondary);
+}
+
+.service-checkbox .checkmark {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--color-border);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.service-checkbox input:checked + label .checkmark {
+  background: var(--color-secondary);
+  border-color: var(--color-secondary);
+}
+
+.service-checkbox .checkmark::after {
+  content: '✓';
+  color: white;
+  font-size: 12px;
+  font-weight: bold;
+  display: none;
+}
+
+.service-checkbox input:checked + label .checkmark::after {
+  display: block;
+}
+
+.selected-services {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-height: 32px;
+}
+
+.selected-service-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: var(--color-secondary);
+  color: white;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.selected-service-tag .remove-service {
+  cursor: pointer;
+  opacity: 0.8;
+  font-size: 14px;
+}
+
+.selected-service-tag .remove-service:hover {
+  opacity: 1;
+}
+
+.service-values {
+  background: var(--color-card);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-sm);
+  box-shadow: var(--shadow-sm);
+  border-left: 4px solid var(--color-secondary);
+}
+
+.service-values__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-xs);
+}
+
+.service-values__name {
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.service-values__range {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+}
+
+.service-values__converted {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-accent);
+  margin-top: var(--spacing-xs);
+}
+
+.service-values--total {
+  background: linear-gradient(135deg, var(--color-primary) 0%, #2d5a8a 100%);
+  border-left: 4px solid var(--color-accent);
+  margin-top: var(--spacing-md);
+}
+
+.service-values--total .service-values__name,
+.service-values--total .service-values__range,
+.service-values--total .service-values__converted {
+  color: white;
+}
+
+.service-values--total .service-values__range {
+  opacity: 0.9;
+}
+
+.service-values--total .service-values__converted {
+  font-size: 24px;
+}
+
+.no-services-selected {
+  text-align: center;
+  padding: var(--spacing-md);
+  color: var(--color-text-secondary);
+  font-size: 14px;
+}

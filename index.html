@@ -20,40 +20,15 @@
     <main>
       <div class="form-card">
         <div class="form-group">
-          <label for="service-select" class="form-label">1. Selecione o Tipo de Serviço</label>
-          <select id="service-select" class="form-select" required>
-          </select>
+          <label class="form-label">1. Selecione os Serviços desejados</label>
+          <div id="services-grid" class="services-grid"></div>
+          <div id="selected-services" class="selected-services"></div>
         </div>
 
         <div class="form-group">
-          <div class="value-range" id="value-range"></div>
-        </div>
-
-        <div class="form-group">
-          <label for="brl-value" class="form-label">2. Informe o Valor em Reais (R$)</label>
-          <div class="input-currency">
-            <span class="input-currency__symbol">R$</span>
-            <input 
-              type="text" 
-              id="brl-value" 
-              class="form-input" 
-              placeholder="0,00"
-              inputmode="decimal"
-            >
-          </div>
-          <div id="alert" class="alert"></div>
-        </div>
-
-        <div class="form-group">
-          <label for="currency-select" class="form-label">3. Selecione a Moeda de Conversão</label>
+          <label for="currency-select" class="form-label">2. Selecione a Moeda de Conversão</label>
           <select id="currency-select" class="form-select" required>
           </select>
-        </div>
-
-        <div class="form-group">
-          <button type="button" id="btn-calculate" class="btn btn--primary">
-            Calcular Conversão
-          </button>
         </div>
 
         <div id="loading" class="loading">

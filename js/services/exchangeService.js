@@ -113,6 +113,19 @@ function calculateConversion(brlValue, exchangeRate) {
   };
 }
 
+function calculateRangeConversion(minBrl, maxBrl, exchangeRate) {
+  return {
+    minOriginal: minBrl,
+    maxOriginal: maxBrl,
+    minConverted: minBrl * exchangeRate.rate,
+    maxConverted: maxBrl * exchangeRate.rate,
+    rate: exchangeRate.rate,
+    currencyCode: exchangeRate.code,
+    calculatedAt: exchangeRate.timestamp,
+    source: exchangeRate.source
+  };
+}
+
 function getUserMessage(code) {
   const messages = {
     [ERROR_CODES.API_OFFLINE]: 'Serviço de câmbio temporariamente indisponível. Usando taxa alternativa.',

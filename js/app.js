@@ -2,38 +2,86 @@
   'use strict';
 
   const elements = {
-    serviceSelect: document.getElementById('service-select'),
-    valueRange: document.getElementById('value-range'),
-    brlValue: document.getElementById('brl-value'),
+    servicesGrid: document.getElementById('services-grid'),
+    selectedServices: document.getElementById('selected-services'),
     currencySelect: document.getElementById('currency-select'),
-    calculateBtn: document.getElementById('btn-calculate'),
-    clearBtn: document.getElementById('btn-clear'),
-    newCalcBtn: document.getElementById('btn-new'),
     resultCard: document.getElementById('result'),
     alertBox: document.getElementById('alert'),
     loadingSpinner: document.getElementById('loading')
   };
 
-  let currentService = null;
-  let currentCurrency = null;
+  let selectedServices = [];
+  let exchangeRate = null;
+  let rateLoaded = false;
 
   function init() {
-    populateServiceSelect();
+    renderServicesGrid();
     populateCurrencySelect();
     attachEventListeners();
+    loadExchangeRate();
   }
 
-  function populateServiceSelect() {
-    const defaultOption = document.createElement('option');
-    defaultOption.value = '';
-    defaultOption.textContent = 'Selecione um serviço...';
-    elements.serviceSelect.appendChild(defaultOption);
-
+  function renderServicesGrid() {
+    elements.servicesGrid.innerHTML = '';
+    
     Object.values(SERVICES).forEach(service => {
-      const option = document.createElement('option');
-      option.value = service.id;
-      option.textContent = service.name;
-      elements.serviceSelect.appendChild(option);
+      const container = document.createElement('div');
+      container.className = 'service-checkbox';
+      
+      const input = document.createElement('input');
+      input.type = 'checkbox';
+      input.id = `service-${service.id}`;
+      input.value = service.id;
+      input.addEventListener('change', () => handleServiceToggle(service.id));
+      
+      const label = document.createElement('label');
+      label.htmlFor = `service-${service.id}`;
+      
+      const checkmark = document.createElement('span');
+      checkmark.className = 'checkmark';
+      
+      const text = document.createTextNode(service.name);
+      
+      label.appendChild(checkmark);
+      label.appendChild(text);
+      
+      container.appendChild(input);
+      container.appendChild(label);
+      
+      elements.servicesGrid.appendChild(container);
+    });
+  }
+
+  function handleServiceToggle(serviceId) {
+    const service = SERVICES[serviceId];
+    
+    if (selectedServices.find(s => s.id === serviceId)) {
+      selectedServices = selectedServices.filter(s => s.id !== serviceId);
+    } else {
+      selectedServices.push(service);
+    }
+    
+    updateSelectedServicesDisplay();
+    displayResults();
+  }
+
+  function updateSelectedServicesDisplay() {
+    elements.selectedServices.innerHTML = '';
+    
+    selectedServices.forEach(service => {
+      const tag = document.createElement('span');
+      tag.className = 'selected-service-tag';
+      tag.innerHTML = `
+        ${service.name}
+        <span class="remove-service" data-id="${service.id}">×</span>
+      `;
+      
+      tag.querySelector('.remove-service').addEventListener('click', () => {
+        document.getElementById(`service-${service.id}`).checked = false;
+        handleServiceToggle(service.id);
+      });
+      
+      elements.selectedServices.appendChild(tag);
     });
   }
 
@@ -47,177 +95,168 @@
   }
 
   function attachEventListeners() {
-    elements.serviceSelect.addEventListener('change', handleServiceChange);
-    elements.brlValue.addEventListener('input', handleValueInput);
-    elements.brlValue.addEventListener('blur', handleValueBlur);
-    elements.calculateBtn.addEventListener('click', handleCalculate);
-    elements.clearBtn.addEventListener('click', handleClear);
-    elements.newCalcBtn.addEventListener('click', handleClear);
+    elements.currencySelect.addEventListener('change', async () => {
+      await loadExchangeRate();
+      displayResults();
+    });
   }
 
-  function handleServiceChange() {
-    const serviceId = elements.serviceSelect.value;
-    currentService = serviceId ? SERVICES[serviceId] : null;
-    
-    displayValueRange(currentService);
-    hideAlert();
-    hideResult();
-    
-    if (currentService) {
-      elements.brlValue.focus();
-    }
-  }
-
-  function displayValueRange(service) {
-    if (!service) {
-      elements.valueRange.textContent = '';
-      elements.valueRange.className = 'value-range';
-      return;
-    }
-
-    const { minValue, maxValue, unit } = service;
-
-    if (minValue === null && maxValue === null) {
-      elements.valueRange.textContent = 'Entrada livre (sem restrição de valor)';
-      elements.valueRange.className = 'value-range value-range--free';
-      return;
-    }
-
-    if (minValue === maxValue) {
-      elements.valueRange.textContent = `${formatCurrency(minValue, 'BRL')} (valor fixo)`;
-    } else {
-      const unitText = unit ? ` /${unit}` : '';
-      elements.valueRange.textContent = `${formatCurrency(minValue, 'BRL')} - ${formatCurrency(maxValue, 'BRL')}${unitText}`;
-    }
-
-    elements.valueRange.className = 'value-range value-range--active';
-  }
-
-  function handleValueInput(e) {
-    formatInputAsBRL(e.target);
-    hideAlert();
-  }
-
-  function handleValueBlur() {
-    if (!currentService || !elements.brlValue.value) {
-      return;
-    }
-
-    const value = parseBRLInput(elements.brlValue.value);
-    const validation = validateValue(currentService, value);
-    
-    if (!validation.isValid) {
-      showAlert(validation.message, 'error');
-    } else if (validation.isOutOfRange) {
-      showAlert(validation.message, 'warning');
-    } else {
-      hideAlert();
-    }
-  }
-
-  async function handleCalculate() {
-    if (!validateForm()) {
-      return;
-    }
-
-    const brlValue = parseBRLInput(elements.brlValue.value);
+  async function loadExchangeRate() {
     const currencyCode = elements.currencySelect.value;
-    currentCurrency = CURRENCIES[currencyCode];
-
+    
     showLoading();
-    hideAlert();
-    hideResult();
-
+    
     try {
-      const exchangeRate = await fetchExchangeRate(currencyCode);
-      const calculation = calculateConversion(brlValue, exchangeRate);
-      displayResult(calculation, currentCurrency);
+      exchangeRate = await fetchExchangeRate(currencyCode);
+      if (!exchangeRate || !exchangeRate.rate) {
+        throw new Error('Taxa de câmbio inválida');
+      }
+      rateLoaded = true;
     } catch (error) {
-      showAlert(getUserMessage(error.code) || error.message, 'error');
+      console.error('Erro:', error);
+      showAlert(error.message || 'Erro ao buscar taxa de câmbio', 'error');
     } finally {
       hideLoading();
     }
   }
 
-  function displayResult(calculation, currency) {
+  function displayResults() {
+    if (selectedServices.length === 0) {
+      hideResult();
+      return;
+    }
+
+    if (!rateLoaded || !exchangeRate) {
+      return;
+    }
+
+    const currencyCode = elements.currencySelect.value;
+    const currency = CURRENCIES[currencyCode];
+    const rate = exchangeRate.rate;
     const resultDiv = elements.resultCard;
     
-    const formattedOriginal = formatCurrency(calculation.originalValue, 'BRL');
-    const formattedConverted = formatCurrency(calculation.convertedValue, currency.code);
+    let servicesHtml = '';
+    let totalMinBrl = 0;
+    let totalMaxBrl = 0;
+    let hasFreeValue = false;
     
+    selectedServices.forEach(service => {
+      const minConverted = service.minValue ? service.minValue / rate : null;
+      const maxConverted = service.maxValue ? service.maxValue / rate : null;
+      
+      if (service.minValue === null || service.maxValue === null) {
+        hasFreeValue = true;
+      } else {
+        totalMinBrl += service.minValue;
+        totalMaxBrl += service.maxValue;
+      }
+      
+      const minDisplay = service.minValue ? formatCurrency(service.minValue, 'BRL') : 'Livre';
+      const maxDisplay = service.maxValue ? formatCurrency(service.maxValue, 'BRL') : 'Livre';
+      
+      const rangeDisplay = (service.minValue === null && service.maxValue === null) 
+        ? 'Valor livre'
+        : (service.minValue === service.maxValue)
+          ? `${minDisplay} (fixo)`
+          : `${minDisplay} - ${maxDisplay}`;
+      
+      const convertedRange = (minConverted === null && maxConverted === null)
+        ? 'Valor livre'
+        : (minConverted === maxConverted)
+          ? `${currency.symbol}${(minConverted).toFixed(currency.decimals)} (fixo)`
+          : `${currency.symbol}${(minConverted).toFixed(currency.decimals)} - ${currency.symbol}${(maxConverted).toFixed(currency.decimals)}`;
+      
+      servicesHtml += `
+        <div class="service-values">
+          <div class="service-values__header">
+            <span class="service-values__name">${service.name}</span>
+          </div>
+          <div class="service-values__range">
+            <strong>Em BRL:</strong> ${rangeDisplay}
+          </div>
+          <div class="service-values__converted">
+            <strong>${currency.code}:</strong> ${convertedRange}
+          </div>
+        </div>
+      `;
+    });
+
+    const totalMinConverted = totalMinBrl / rate;
+    const totalMaxConverted = totalMaxBrl / rate;
+    
+    let totalHtml = '';
+    if (hasFreeValue) {
+      totalHtml = `
+        <div class="service-values service-values--total">
+          <div class="service-values__header">
+            <span class="service-values__name">TOTAL</span>
+          </div>
+          <div class="service-values__range">
+            <strong>Em BRL:</strong> Inclui serviços com valor livre
+          </div>
+          <div class="service-values__converted">
+            <strong>${currency.code}:</strong> Sob consulta
+          </div>
+        </div>
+      `;
+    } else {
+      const totalMinDisplay = formatCurrency(totalMinBrl, 'BRL');
+      const totalMaxDisplay = formatCurrency(totalMaxBrl, 'BRL');
+      const totalRangeDisplay = totalMinBrl === totalMaxBrl 
+        ? `${totalMinDisplay} (fixo)`
+        : `${totalMinDisplay} - ${totalMaxDisplay}`;
+      
+      const totalConvertedRange = totalMinBrl === totalMaxBrl
+        ? `${currency.symbol}${(totalMinConverted).toFixed(currency.decimals)} (fixo)`
+        : `${currency.symbol}${(totalMinConverted).toFixed(currency.decimals)} - ${currency.symbol}${(totalMaxConverted).toFixed(currency.decimals)}`;
+      
+      totalHtml = `
+        <div class="service-values service-values--total">
+          <div class="service-values__header">
+            <span class="service-values__name">TOTAL</span>
+          </div>
+          <div class="service-values__range">
+            <strong>Em BRL:</strong> ${totalRangeDisplay}
+          </div>
+          <div class="service-values__converted">
+            <strong>${currency.code}:</strong> ${totalConvertedRange}
+          </div>
+        </div>
+      `;
+    }
+
     const rateDisplay = currency.code === 'JPY' 
-      ? calculation.rate.toFixed(2)
-      : calculation.rate.toFixed(4);
+      ? rate.toFixed(2)
+      : rate.toFixed(4);
 
     resultDiv.innerHTML = `
-      <div class="result-original">
-        <span class="label">Valor Original</span>
-        <span class="value">R$ ${formattedOriginal}</span>
-      </div>
-      
-      <div class="result-divider"></div>
-      
       <div class="result-converted-info">
-        <span class="label">Convertido para</span>
+        <span class="label">Valores em</span>
         <span class="currency-code">${currency.code}</span>
         <span class="currency-name">${currency.name}</span>
         
         <div class="exchange-rate">
           Taxa de Câmbio: 1 BRL = ${rateDisplay} ${currency.code}
-          <span class="source">(${calculation.source})</span>
-        </div>
-        <div class="timestamp">
-          Atualizado em: ${formatDateTime(calculation.calculatedAt)}
+          <span class="source">(taxa atual)</span>
         </div>
       </div>
       
       <div class="result-divider"></div>
       
-      <div class="result-final">
-        <span class="symbol">${currency.symbol}</span>
-        <span class="value">${formattedConverted.replace(currency.symbol, '').trim()}</span>
+      <div class="services-results">
+        ${servicesHtml}
+        ${totalHtml}
       </div>
       
       <div class="btn-group">
         <button type="button" class="btn btn--secondary" id="btn-clear">Limpar</button>
-        <button type="button" class="btn btn--secondary" id="btn-new">Novo Cálculo</button>
       </div>
     `;
 
     document.getElementById('btn-clear').addEventListener('click', handleClear);
-    document.getElementById('btn-new').addEventListener('click', handleClear);
     
     resultDiv.classList.add('result-card--visible');
     resultDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }
-
-  function validateForm() {
-    if (!elements.serviceSelect.value) {
-      showAlert('Selecione um tipo de serviço.', 'error');
-      elements.serviceSelect.focus();
-      return false;
-    }
-
-    if (!elements.brlValue.value) {
-      showAlert('Informe o valor em Reais.', 'error');
-      elements.brlValue.focus();
-      return false;
-    }
-
-    const value = parseBRLInput(elements.brlValue.value);
-    if (value <= 0) {
-      showAlert('Informe um valor válido maior que zero.', 'error');
-      elements.brlValue.focus();
-      return false;
-    }
-
-    if (!elements.currencySelect.value) {
-      showAlert('Selecione uma moeda para conversão.', 'error');
-      elements.currencySelect.focus();
-      return false;
-    }
-
-    return true;
   }
 
   function showAlert(message, type = 'info') {
@@ -236,31 +275,25 @@
 
   function showLoading() {
     elements.loadingSpinner.classList.add('loading--visible');
-    elements.calculateBtn.disabled = true;
-    elements.calculateBtn.textContent = 'Calculando...';
   }
 
   function hideLoading() {
     elements.loadingSpinner.classList.remove('loading--visible');
-    elements.calculateBtn.disabled = false;
-    elements.calculateBtn.textContent = 'Calcular Conversão';
   }
 
   function handleClear() {
-    elements.serviceSelect.value = '';
-    elements.brlValue.value = '';
+    selectedServices = [];
+    
+    document.querySelectorAll('.service-checkbox input').forEach(input => {
+      input.checked = false;
+    });
+    
+    elements.selectedServices.innerHTML = '';
     elements.currencySelect.value = 'USD';
-    
-    currentService = null;
-    currentCurrency = null;
-    
-    elements.valueRange.textContent = '';
-    elements.valueRange.className = 'value-range';
     
     hideAlert();
     hideResult();
-    
-    elements.serviceSelect.focus();
+    loadExchangeRate();
   }
 
   if (document.readyState === 'loading') {
